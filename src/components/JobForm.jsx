@@ -46,6 +46,9 @@ export default function JobForm({ initialData = null, onSubmit, onClose, title =
         category: initialData.category || "Full-Stack",
         shortDescription: initialData.shortDescription || "",
         description: initialData.description || "",
+        requirements: initialData.requirements || "",
+        benefits: initialData.benefits || "",
+        
         salary: initialData.salary || "",
         location: initialData.location || "",
         type: initialData.type || "Full-time",
@@ -65,7 +68,9 @@ export default function JobForm({ initialData = null, onSubmit, onClose, title =
     setError("");
     setLoading(true);
 
-    if (!formData.title || !formData.company || !formData.description || !formData.location || !formData.salary) {
+    if (!formData.title || !formData.company || !formData.description || !formData.location || !formData.salary
+      || !formData.requirements || !formData.benefits
+    ) {
       setError("Please fill out all required fields.");
       setLoading(false);
       return;
@@ -271,6 +276,34 @@ export default function JobForm({ initialData = null, onSubmit, onClose, title =
             rows="4"
             placeholder="Detailed description of the responsibilities and team role..."
             className="w-full px-4 py-2.5 rounded-xl border border-[#2D2D35] bg-[#0A0A0F] text-white placeholder-gray-500 focus:outline-none focus:border-[#4F46E5] transition-colors text-sm font-sans"
+            required
+          />
+        </div>
+        <div className="space-y-1.5">
+          <label className="text-xs font-bold text-gray-400 uppercase tracking-wider flex items-center gap-1.5">
+            Requirements <span className="text-rose-500">*</span>
+          </label>
+          <input
+            type="text"
+            name="requirements"
+            value={formData.requirements}
+            onChange={handleChange}
+            placeholder="Brief 1-sentence teaser of the role"
+            className="w-full px-4 py-2.5 rounded-xl border border-[#2D2D35] bg-[#0A0A0F] text-white placeholder-gray-500 focus:outline-none focus:border-[#4F46E5] transition-colors text-sm"
+            required
+          />
+        </div>
+        <div className="space-y-1.5">
+          <label className="text-xs font-bold text-gray-400 uppercase tracking-wider flex items-center gap-1.5">
+            Benefits <span className="text-rose-500">*</span>
+          </label>
+          <input
+            type="text"
+            name="benefits"
+            value={formData.benefits}
+            onChange={handleChange}
+            placeholder="Brief 1-sentence teaser of the role"
+            className="w-full px-4 py-2.5 rounded-xl border border-[#2D2D35] bg-[#0A0A0F] text-white placeholder-gray-500 focus:outline-none focus:border-[#4F46E5] transition-colors text-sm"
             required
           />
         </div>

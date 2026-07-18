@@ -91,7 +91,7 @@ function JobExploreContent() {
   const { data: allJobs = [], isLoading, error } = useQuery({
     queryKey: ["jobs"],
     queryFn: async () => {
-      const response = await fetch("http://localhost:5000/jobs");
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BASEURL}/jobs`);
       if (!response.ok) {
         throw new Error("Failed to fetch jobs from backend server");
       }
@@ -177,7 +177,7 @@ function JobExploreContent() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0A0A0F] text-white pt-24 pb-20 relative">
+    <div className="min-h-screen bg-[#0A0A0F] text-white pt-10 pb-20 relative">
       {/* Background gradients */}
       <div className="absolute right-0 top-0 w-[400px] h-[400px] bg-[#4F46E5]/4 blur-[100px] pointer-events-none" />
       <div className="absolute left-0 bottom-0 w-[400px] h-[400px] bg-[#2DD4BF]/3 blur-[100px] pointer-events-none" />
@@ -312,7 +312,7 @@ function JobExploreContent() {
             ))}
           </div>
         ) : error ? (
-          <div className="text-center py-20 rounded-2xl border border-rose-500/30 bg-rose-500/10 text-rose-400">
+          <div className="text-center py-10 rounded-2xl border border-rose-500/30 bg-rose-500/10 text-rose-400">
             <p className="text-lg font-bold">Failed to load job listings</p>
             <p className="text-sm mt-1">{error.message || "Please make sure the backend server is running."}</p>
           </div>
@@ -330,7 +330,7 @@ function JobExploreContent() {
           </motion.div>
         ) : (
           <motion.div
-            className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6"
+            className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full"
             initial="hidden"
             animate="visible"
             variants={{
@@ -357,7 +357,7 @@ function JobExploreContent() {
               >
                 {/* Details */}
                 <div>
-                  <div className="flex items-start justify-between gap-3 mb-4">
+                  <div className="flex items-start justify-between gap-3 mb-4 mr-5">
                     <div className="flex items-center gap-3">
                       {job.imageUrl || job.logoUrl ? (
                         <img 
@@ -378,10 +378,10 @@ function JobExploreContent() {
                       </div>
                     </div>
 
-                    <div className="inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-[#4F46E5]/10 to-[#2DD4BF]/10 border border-[#4F46E5]/30 px-2.5 py-0.5 text-[10px] font-bold text-white shrink-0">
+                    {/* <div className="inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-[#4F46E5]/10 to-[#2DD4BF]/10 border border-[#4F46E5]/30 px-2.5 py-0.5 text-[10px] font-bold text-white shrink-0 ">
                       <FiCpu className="text-[#2DD4BF] h-3 w-3 animate-pulse" />
                       <span>{job.matchScore || 85}% Match</span>
-                    </div>
+                    </div> */}
                   </div>
 
                   <p className="text-xs text-gray-400 line-clamp-2 mb-4">

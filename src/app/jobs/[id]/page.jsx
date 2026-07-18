@@ -2,15 +2,15 @@
 
 import { use, useState, useEffect } from "react";
 
-import { 
-  FiMapPin, 
-  FiDollarSign, 
-  FiClock, 
-  FiCpu, 
-  FiArrowLeft, 
-  FiCheckCircle, 
-  FiBriefcase, 
-  FiArrowRight, 
+import {
+  FiMapPin,
+  FiDollarSign,
+  FiClock,
+  FiCpu,
+  FiArrowLeft,
+  FiCheckCircle,
+  FiBriefcase,
+  FiArrowRight,
   FiCalendar,
   FiUser
 } from "react-icons/fi";
@@ -18,6 +18,19 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import toast from "react-hot-toast";
 import { authClient } from "@/lib/auth-client";
+
+// Normalizes a field that might be an array, a comma/newline-separated
+// string, or missing — always returns a clean array of strings.
+function toList(value) {
+  if (Array.isArray(value)) return value.filter(Boolean);
+  if (typeof value === "string" && value.trim() !== "") {
+    return value
+      .split(/\n|,/)
+      .map((v) => v.trim())
+      .filter(Boolean);
+  }
+  return [];
+}
 
 export default function JobDetails({ params }) {
   const resolvedParams = use(params);
@@ -27,7 +40,7 @@ export default function JobDetails({ params }) {
   const [relatedJobs, setRelatedJobs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  
+
   const { data: session } = authClient.useSession();
   const isLoggedIn = !!session;
 
@@ -65,7 +78,7 @@ export default function JobDetails({ params }) {
         style: {
           background: "#18181E",
           color: "#fff",
-          border: "1px border #2D2D35"
+          border: "1px solid #2D2D35"
         }
       });
     }, 2000);
@@ -99,6 +112,10 @@ export default function JobDetails({ params }) {
     );
   }
 
+  const requirementsList = toList(job.requirements);
+  const benefitsList = toList(job.benefits);
+  const tagsList = toList(job.tags);
+
   return (
     <div className="min-h-screen bg-[#0A0A0F] text-white pt-24 pb-20 overflow-hidden relative">
       {/* Background gradients */}
@@ -106,7 +123,7 @@ export default function JobDetails({ params }) {
       <div className="absolute left-0 bottom-1/4 w-[350px] h-[350px] bg-[#2DD4BF]/3 blur-[100px] pointer-events-none" />
 
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 relative">
-        
+
         {/* Back Link */}
         <Link
           href="/jobs"
@@ -119,7 +136,7 @@ export default function JobDetails({ params }) {
         {/* Hero Details Block */}
         <div className="rounded-2xl border border-[#2D2D35] bg-[#18181E]/60 backdrop-blur-md p-6 sm:p-8 mb-8">
           <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
-            
+
             <div className="flex items-center gap-5">
               {/* Logo block */}
               {job.imageUrl || job.logoUrl ? (
@@ -133,7 +150,7 @@ export default function JobDetails({ params }) {
                   {job.logo || job.title?.substring(0, 2).toUpperCase() || 'JB'}
                 </div>
               )}
-              
+
               <div>
                 <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white leading-tight">
                   {job.title}
@@ -204,7 +221,7 @@ export default function JobDetails({ params }) {
 
         {/* Content Body Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-          
+
           {/* Main details column */}
           <div className="lg:col-span-8 space-y-8">
             {/* Description */}
@@ -225,7 +242,7 @@ export default function JobDetails({ params }) {
                 Requirements
               </h2>
               <ul className="space-y-3.5">
-                {(job.requirements || []).map((req, i) => (
+                {requirementsList.map((req, i) => (
                   <li key={i} className="flex items-start gap-3 text-sm text-gray-300 leading-relaxed">
                     <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#2DD4BF]/10 text-[#2DD4BF] text-xs font-bold mt-0.5">
                       ✓
@@ -233,7 +250,7 @@ export default function JobDetails({ params }) {
                     <span>{req}</span>
                   </li>
                 ))}
-                {(!job.requirements || job.requirements.length === 0) && (
+                {requirementsList.length === 0 && (
                   <li className="text-sm text-gray-500 italic">No specific requirements listed.</li>
                 )}
               </ul>
@@ -246,7 +263,7 @@ export default function JobDetails({ params }) {
                 Benefits & Perks
               </h2>
               <ul className="space-y-3.5">
-                {(job.benefits || []).map((benefit, i) => (
+                {benefitsList.map((benefit, i) => (
                   <li key={i} className="flex items-start gap-3 text-sm text-gray-300 leading-relaxed">
                     <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#4F46E5]/20 text-[#4F46E5] text-xs font-bold mt-0.5">
                       +
@@ -254,7 +271,7 @@ export default function JobDetails({ params }) {
                     <span>{benefit}</span>
                   </li>
                 ))}
-                {(!job.benefits || job.benefits.length === 0) && (
+                {benefitsList.length === 0 && (
                   <li className="text-sm text-gray-500 italic">No specific benefits listed.</li>
                 )}
               </ul>
@@ -296,8 +313,8 @@ export default function JobDetails({ params }) {
                     </>
                   )}
                 </button>
-                
-                <button 
+
+                <button
                   onClick={() => toast.success("Saved to your developer console!")}
                   className="w-full py-3.5 px-4 rounded-xl border border-[#2D2D35] bg-transparent text-sm font-semibold text-gray-400 hover:text-white hover:bg-[#18181E] transition-all cursor-pointer"
                 >
@@ -309,14 +326,17 @@ export default function JobDetails({ params }) {
               <div className="border-t border-[#2D2D35]/50 mt-6 pt-6 space-y-3">
                 <p className="text-xs text-gray-500 font-bold uppercase">Required Stack</p>
                 <div className="flex flex-wrap gap-2">
-                  {(job.tags || []).map((tag, i) => (
-                    <span 
+                  {tagsList.map((tag, i) => (
+                    <span
                       key={i}
                       className="rounded-lg bg-[#0A0A0F] border border-[#2D2D35] px-2.5 py-1 text-xs text-gray-300 font-semibold"
                     >
                       {tag}
                     </span>
                   ))}
+                  {tagsList.length === 0 && (
+                    <span className="text-xs text-gray-500 italic">No tags listed.</span>
+                  )}
                 </div>
               </div>
             </div>
@@ -330,7 +350,7 @@ export default function JobDetails({ params }) {
               <h2 className="text-2xl font-extrabold text-white">Related Opportunities</h2>
               <p className="text-sm text-gray-400 mt-1">Explore similar job listing recommendations matching this category.</p>
             </div>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {relatedJobs.map((relJob) => (
                 <motion.div
@@ -350,13 +370,13 @@ export default function JobDetails({ params }) {
                         <p className="text-xs font-semibold text-gray-400">{relJob.company}</p>
                       </div>
                     </div>
-                    
+
                     <p className="text-xs text-gray-400 line-clamp-2 mb-4">{relJob.description}</p>
-                    
+
                     <div className="flex items-center gap-3 text-[10px] text-gray-400 mb-2">
                       <span className="flex items-center gap-1">
                         <FiMapPin className="h-3 w-3" />
-                        {relJob.location.replace(" (Hybrid)", "").replace(" (US)", "")}
+                        {(relJob.location || "").replace(" (Hybrid)", "").replace(" (US)", "")}
                       </span>
                       <span className="flex items-center gap-1">
                         <FiDollarSign className="h-3 w-3" />
