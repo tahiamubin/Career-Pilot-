@@ -3,6 +3,7 @@
 import { useState, useEffect, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
+import { useQuery } from "@tanstack/react-query";
 import { 
   FiSearch, 
   FiMapPin, 
@@ -12,7 +13,8 @@ import {
   FiArrowRight, 
   FiFilter, 
   FiChevronLeft, 
-  FiChevronRight 
+  FiChevronRight,
+  FiPlus
 } from "react-icons/fi";
 import Link from "next/link";
 
@@ -64,11 +66,6 @@ function JobExploreContent() {
   const [sort, setSort] = useState(initialSort);
   const [page, setPage] = useState(initialPage);
 
-  const [jobs, setJobs] = useState([]);
-  const [totalPages, setTotalPages] = useState(1);
-  const [totalJobs, setTotalJobs] = useState(0);
-  const [loading, setLoading] = useState(true);
-
   const categories = [
     "All",
     "AI / Machine Learning",
@@ -90,35 +87,80 @@ function JobExploreContent() {
     "Hybrid"
   ];
 
-  const fetchJobs = async () => {
-    setLoading(true);
-    try {
-      const query = new URLSearchParams({
-        q: search,
-        category,
-        location,
-        sort,
-        page: page.toString(),
-        limit: "6"
-      });
-      const response = await fetch(`/api/jobs?${query.toString()}`);
-      if (response.ok) {
-        const data = await response.json();
-        setJobs(data.jobs || []);
-        setTotalPages(data.pages || 1);
-        setTotalJobs(data.total || 0);
+  // Fetch all jobs using TanStack Query
+  const { data: allJobs = [], isLoading, error } = useQuery({
+    queryKey: ["jobs"],
+    queryFn: async () => {
+      const response = await fetch("http://localhost:5000/jobs");
+      if (!response.ok) {
+        throw new Error("Failed to fetch jobs from backend server");
       }
-    } catch (error) {
-      console.error("Error fetching jobs:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
+      return response.json();
+    },
+  });
 
+  // Client-side filtering & sorting on the query cache
+  const filteredJobs = allJobs.filter((job) => {
+    // 1. Search Filter
+    if (search.trim()) {
+      const queryStr = search.toLowerCase();
+      const titleMatch = job.title?.toLowerCase().includes(queryStr);
+      const companyMatch = job.company?.toLowerCase().includes(queryStr);
+      const descriptionMatch = job.description?.toLowerCase().includes(queryStr);
+      const shortDescMatch = job.shortDescription?.toLowerCase().includes(queryStr);
+      const tagsMatch = Array.isArray(job.tags) && job.tags.some(tag => tag.toLowerCase().includes(queryStr));
+
+      if (!titleMatch && !companyMatch && !descriptionMatch && !shortDescMatch && !tagsMatch) {
+        return false;
+      }
+    }
+
+    // 2. Category Filter
+    if (category && category !== "All") {
+      if (job.category !== category) return false;
+    }
+
+    // 3. Location Filter
+    if (location && location !== "All") {
+      const jobLoc = job.location?.toLowerCase() || "";
+      if (location === "Remote") {
+        if (!jobLoc.includes("remote")) return false;
+      } else if (location === "Hybrid") {
+        if (!jobLoc.includes("hybrid")) return false;
+      } else {
+        if (!jobLoc.includes(location.toLowerCase())) return false;
+      }
+    }
+
+    return true;
+  });
+
+  // Sort logic
+  const sortedJobs = [...filteredJobs].sort((a, b) => {
+    if (sort === "salary") {
+      const getNumericSalary = (salStr) => {
+        if (!salStr) return 0;
+        const cleanStr = salStr.replace(/[^0-9]/g, "");
+        return parseInt(cleanStr, 10) || 0;
+      };
+      return getNumericSalary(b.salary) - getNumericSalary(a.salary);
+    } else {
+      // Default: date (Newest Posted)
+      const dateA = new Date(a.postedAt || 0).getTime();
+      const dateB = new Date(b.postedAt || 0).getTime();
+      return dateB - dateA;
+    }
+  });
+
+  // Pagination config
+  const limit = 8; // Displaying in 4-per-row grid fits 8 items nicely
+  const totalJobs = sortedJobs.length;
+  const totalPages = Math.ceil(totalJobs / limit);
+  const startIndex = (page - 1) * limit;
+  const paginatedJobs = sortedJobs.slice(startIndex, startIndex + limit);
+
+  // Sync state to URL params silently
   useEffect(() => {
-    fetchJobs();
-    
-    // Sync state to URL params silently
     const params = new URLSearchParams();
     if (search) params.set("q", search);
     if (category !== "All") params.set("category", category);
@@ -127,16 +169,15 @@ function JobExploreContent() {
     if (page > 1) params.set("page", page.toString());
     
     router.replace(`/jobs?${params.toString()}`, { scroll: false });
-  }, [category, location, sort, page]);
+  }, [category, location, sort, page, search]);
 
   const handleSearchSubmit = (e) => {
     e.preventDefault();
     setPage(1);
-    fetchJobs();
   };
 
   return (
-    <div className="min-h-screen bg-[#0A0A0F] text-white pt-24 pb-20">
+    <div className="min-h-screen bg-[#0A0A0F] text-white pt-24 pb-20 relative">
       {/* Background gradients */}
       <div className="absolute right-0 top-0 w-[400px] h-[400px] bg-[#4F46E5]/4 blur-[100px] pointer-events-none" />
       <div className="absolute left-0 bottom-0 w-[400px] h-[400px] bg-[#2DD4BF]/3 blur-[100px] pointer-events-none" />
@@ -167,7 +208,10 @@ function JobExploreContent() {
                 type="text"
                 placeholder="Search job title, company, or tags..."
                 value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                onChange={(e) => {
+                  setSearch(e.target.value);
+                  setPage(1);
+                }}
                 className="w-full pl-11 pr-4 py-3 rounded-xl border border-[#2D2D35] bg-[#0A0A0F] text-white placeholder-gray-500 focus:outline-none focus:border-[#4F46E5] transition-colors"
               />
             </div>
@@ -255,19 +299,24 @@ function JobExploreContent() {
         {/* Results Info */}
         <div className="mb-6 flex justify-between items-center text-sm text-gray-400">
           <p>
-            Showing <span className="text-white font-semibold">{jobs.length}</span> of{" "}
+            Showing <span className="text-white font-semibold">{paginatedJobs.length}</span> of{" "}
             <span className="text-white font-semibold">{totalJobs}</span> roles
           </p>
         </div>
 
-        {/* Job Listings Grid */}
-        {loading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8">
-            {Array.from({ length: 6 }).map((_, i) => (
+        {/* Job Listings Grid (4 per row desktop layout) */}
+        {isLoading ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {Array.from({ length: 8 }).map((_, i) => (
               <JobCardSkeleton key={i} />
             ))}
           </div>
-        ) : jobs.length === 0 ? (
+        ) : error ? (
+          <div className="text-center py-20 rounded-2xl border border-rose-500/30 bg-rose-500/10 text-rose-400">
+            <p className="text-lg font-bold">Failed to load job listings</p>
+            <p className="text-sm mt-1">{error.message || "Please make sure the backend server is running."}</p>
+          </div>
+        ) : paginatedJobs.length === 0 ? (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -281,7 +330,7 @@ function JobExploreContent() {
           </motion.div>
         ) : (
           <motion.div
-            className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8"
+            className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6"
             initial="hidden"
             animate="visible"
             variants={{
@@ -292,9 +341,9 @@ function JobExploreContent() {
               }
             }}
           >
-            {jobs.map((job) => (
+            {paginatedJobs.map((job) => (
               <motion.div
-                key={job.id}
+                key={job.id || job._id}
                 variants={{
                   hidden: { opacity: 0, y: 12 },
                   visible: { opacity: 1, y: 0 }
@@ -304,75 +353,88 @@ function JobExploreContent() {
                   borderColor: "#4F46E5",
                   boxShadow: "0 10px 30px -15px rgba(79,70,229,0.3)"
                 }}
-                className="relative rounded-2xl border border-[#2D2D35] bg-[#18181E] p-6 transition-all duration-300 flex flex-col justify-between"
+                className="relative rounded-2xl border border-[#2D2D35] bg-[#18181E] p-5 transition-all duration-300 flex flex-col justify-between"
               >
                 {/* Details */}
                 <div>
-                  <div className="flex items-start justify-between gap-4 mb-4">
-                    <div className="flex items-center gap-4">
-                      <div className={`flex h-12 w-12 items-center justify-center rounded-xl border font-bold text-lg shrink-0 ${job.logoBg}`}>
-                        {job.logo}
-                      </div>
-                      <div>
-                        <h3 className="text-lg font-bold text-white leading-snug hover:text-[#2DD4BF] transition-colors">
-                          <Link href={`/jobs/${job.id}`}>{job.title}</Link>
+                  <div className="flex items-start justify-between gap-3 mb-4">
+                    <div className="flex items-center gap-3">
+                      {job.imageUrl || job.logoUrl ? (
+                        <img 
+                          src={job.imageUrl || job.logoUrl} 
+                          alt={job.title} 
+                          className="h-10 w-10 rounded-xl object-cover shrink-0 border border-[#2D2D35]/30"
+                        />
+                      ) : (
+                        <div className={`flex h-10 w-10 items-center justify-center rounded-xl border font-bold text-sm shrink-0 ${job.logoBg || 'bg-[#2D2D35]/50 text-white'}`}>
+                          {job.logo || job.title?.substring(0, 2).toUpperCase() || 'JB'}
+                        </div>
+                      )}
+                      <div className="min-w-0">
+                        <h3 className="text-base font-bold text-white leading-tight hover:text-[#2DD4BF] transition-colors truncate">
+                          <Link href={`/jobs/${job.id || job._id}`}>{job.title}</Link>
                         </h3>
-                        <p className="text-sm font-semibold text-gray-400">{job.company}</p>
+                        <p className="text-xs font-semibold text-gray-400 truncate">{job.company}</p>
                       </div>
                     </div>
 
-                    <div className="inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-[#4F46E5]/10 to-[#2DD4BF]/10 border border-[#4F46E5]/30 px-3 py-1 text-xs font-bold text-white">
-                      <FiCpu className="text-[#2DD4BF] h-3.5 w-3.5 animate-pulse" />
-                      <span>{job.matchScore}% Match</span>
+                    <div className="inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-[#4F46E5]/10 to-[#2DD4BF]/10 border border-[#4F46E5]/30 px-2.5 py-0.5 text-[10px] font-bold text-white shrink-0">
+                      <FiCpu className="text-[#2DD4BF] h-3 w-3 animate-pulse" />
+                      <span>{job.matchScore || 85}% Match</span>
                     </div>
                   </div>
 
-                  <p className="text-sm text-gray-400 line-clamp-2 mb-4">
-                    {job.description}
+                  <p className="text-xs text-gray-400 line-clamp-2 mb-4">
+                    {job.shortDescription || job.description}
                   </p>
 
-                  <div className="grid grid-cols-2 gap-2 text-xs text-gray-400 mb-5">
+                  <div className="grid grid-cols-1 gap-1.5 text-[11px] text-gray-400 mb-5">
                     <div className="flex items-center gap-1.5">
-                      <FiMapPin className="text-gray-500 h-3.5 w-3.5" />
-                      <span>{job.location}</span>
+                      <FiMapPin className="text-gray-500 h-3.5 w-3.5 shrink-0" />
+                      <span className="truncate">{job.location}</span>
                     </div>
                     <div className="flex items-center gap-1.5">
-                      <FiDollarSign className="text-gray-500 h-3.5 w-3.5" />
-                      <span>{job.salary}</span>
+                      <FiDollarSign className="text-gray-500 h-3.5 w-3.5 shrink-0" />
+                      <span className="truncate">{job.salary}</span>
                     </div>
-                    <div className="flex items-center gap-1.5 col-span-2 mt-1">
-                      <FiClock className="text-gray-500 h-3.5 w-3.5" />
-                      <span>{job.type}</span>
+                    <div className="flex items-center gap-1.5">
+                      <FiClock className="text-gray-500 h-3.5 w-3.5 shrink-0" />
+                      <span className="truncate">{job.type}</span>
                     </div>
                   </div>
 
                   {/* Tags */}
-                  <div className="flex flex-wrap gap-2 mb-6">
-                    {job.tags.map((tag, i) => (
-                      <span
-                        key={i}
-                        className="rounded-lg bg-[#22222A] border border-[#2D2D35] px-2.5 py-1 text-xs text-gray-300 font-medium"
-                      >
-                        {tag}
-                      </span>
-                    ))}
-                  </div>
+                  {Array.isArray(job.tags) && job.tags.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 mb-6">
+                      {job.tags.slice(0, 3).map((tag, i) => (
+                        <span
+                          key={i}
+                          className="rounded bg-[#22222A] border border-[#2D2D35] px-2 py-0.5 text-[10px] text-gray-300 font-medium truncate max-w-[80px]"
+                        >
+                          {tag}
+                        </span>
+                      ))}
+                      {job.tags.length > 3 && (
+                        <span className="text-[10px] text-gray-500 self-center">+{job.tags.length - 3}</span>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 {/* Footer action buttons */}
-                <div className="flex items-center justify-between border-t border-[#2D2D35]/50 pt-4 mt-auto">
+                <div className="flex items-center justify-between border-t border-[#2D2D35]/50 pt-3 mt-auto">
                   <Link
-                    href={`/jobs/${job.id}`}
-                    className="text-xs font-bold text-gray-400 hover:text-white transition-colors"
+                    href={`/jobs/${job.id || job._id}`}
+                    className="text-[11px] font-bold text-gray-400 hover:text-white transition-colors"
                   >
                     View Details
                   </Link>
                   <Link
-                    href={`/jobs/${job.id}`}
-                    className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-[#22222A] hover:bg-gradient-to-r hover:from-[#4F46E5] hover:to-[#2DD4BF] border border-[#2D2D35] hover:border-transparent px-4 py-2 text-xs font-bold text-white transition-all duration-300"
+                    href={`/jobs/${job.id || job._id}`}
+                    className="inline-flex items-center justify-center gap-1 rounded-lg bg-[#22222A] hover:bg-gradient-to-r hover:from-[#4F46E5] hover:to-[#2DD4BF] border border-[#2D2D35] hover:border-transparent px-3 py-1.5 text-[10px] font-bold text-white transition-all duration-300"
                   >
                     Apply with AI
-                    <FiArrowRight className="h-3 w-3" />
+                    <FiArrowRight className="h-2.5 w-2.5" />
                   </Link>
                 </div>
               </motion.div>
@@ -381,7 +443,7 @@ function JobExploreContent() {
         )}
 
         {/* Pagination controls */}
-        {totalPages > 1 && !loading && (
+        {totalPages > 1 && !isLoading && (
           <div className="flex items-center justify-center gap-4 mt-12">
             <button
               onClick={() => setPage((prev) => Math.max(prev - 1, 1))}
@@ -418,6 +480,15 @@ function JobExploreContent() {
           </div>
         )}
       </div>
+
+      {/* Floating Action Button (FAB) for posting a new job */}
+      <Link
+        href="/jobs/new"
+        className="fixed bottom-8 right-8 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-r from-[#4F46E5] to-[#2DD4BF] text-white shadow-lg shadow-[#4F46E5]/30 hover:scale-110 hover:rotate-90 active:scale-95 transition-all duration-300 cursor-pointer"
+        title="Post a New Job"
+      >
+        <FiPlus className="h-6 w-6" />
+      </Link>
     </div>
   );
 }

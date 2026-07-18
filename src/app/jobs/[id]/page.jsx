@@ -1,7 +1,7 @@
 "use client";
 
 import { use, useState, useEffect } from "react";
-import { authClient } from "@/lib/auth-client";
+
 import { 
   FiMapPin, 
   FiDollarSign, 
@@ -17,6 +17,7 @@ import {
 import Link from "next/link";
 import { motion } from "framer-motion";
 import toast from "react-hot-toast";
+import { authClient } from "@/lib/auth-client";
 
 export default function JobDetails({ params }) {
   const resolvedParams = use(params);
@@ -121,9 +122,17 @@ export default function JobDetails({ params }) {
             
             <div className="flex items-center gap-5">
               {/* Logo block */}
-              <div className={`flex h-16 w-16 items-center justify-center rounded-2xl border font-black text-2xl shrink-0 ${job.logoBg}`}>
-                {job.logo}
-              </div>
+              {job.imageUrl || job.logoUrl ? (
+                <img
+                  src={job.imageUrl || job.logoUrl}
+                  alt={job.title}
+                  className="h-16 w-16 rounded-2xl object-cover shrink-0 border border-[#2D2D35]/30"
+                />
+              ) : (
+                <div className={`flex h-16 w-16 items-center justify-center rounded-2xl border font-black text-2xl shrink-0 ${job.logoBg || 'bg-[#2D2D35]/50 text-white'}`}>
+                  {job.logo || job.title?.substring(0, 2).toUpperCase() || 'JB'}
+                </div>
+              )}
               
               <div>
                 <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white leading-tight">
@@ -216,7 +225,7 @@ export default function JobDetails({ params }) {
                 Requirements
               </h2>
               <ul className="space-y-3.5">
-                {job.requirements.map((req, i) => (
+                {(job.requirements || []).map((req, i) => (
                   <li key={i} className="flex items-start gap-3 text-sm text-gray-300 leading-relaxed">
                     <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#2DD4BF]/10 text-[#2DD4BF] text-xs font-bold mt-0.5">
                       ✓
@@ -224,6 +233,9 @@ export default function JobDetails({ params }) {
                     <span>{req}</span>
                   </li>
                 ))}
+                {(!job.requirements || job.requirements.length === 0) && (
+                  <li className="text-sm text-gray-500 italic">No specific requirements listed.</li>
+                )}
               </ul>
             </div>
 
@@ -234,7 +246,7 @@ export default function JobDetails({ params }) {
                 Benefits & Perks
               </h2>
               <ul className="space-y-3.5">
-                {job.benefits.map((benefit, i) => (
+                {(job.benefits || []).map((benefit, i) => (
                   <li key={i} className="flex items-start gap-3 text-sm text-gray-300 leading-relaxed">
                     <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#4F46E5]/20 text-[#4F46E5] text-xs font-bold mt-0.5">
                       +
@@ -242,6 +254,9 @@ export default function JobDetails({ params }) {
                     <span>{benefit}</span>
                   </li>
                 ))}
+                {(!job.benefits || job.benefits.length === 0) && (
+                  <li className="text-sm text-gray-500 italic">No specific benefits listed.</li>
+                )}
               </ul>
             </div>
           </div>
@@ -294,7 +309,7 @@ export default function JobDetails({ params }) {
               <div className="border-t border-[#2D2D35]/50 mt-6 pt-6 space-y-3">
                 <p className="text-xs text-gray-500 font-bold uppercase">Required Stack</p>
                 <div className="flex flex-wrap gap-2">
-                  {job.tags.map((tag, i) => (
+                  {(job.tags || []).map((tag, i) => (
                     <span 
                       key={i}
                       className="rounded-lg bg-[#0A0A0F] border border-[#2D2D35] px-2.5 py-1 text-xs text-gray-300 font-semibold"
