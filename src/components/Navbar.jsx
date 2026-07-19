@@ -39,6 +39,7 @@ export default function Navbar() {
     { name: "Browse Jobs", path: "/jobs" },
     { name: "About", path: "/about" },
     { name: "Login", path: "/signin" },
+    { name: "Signup", path: "/signup" },
   ];
 
   const loggedInRoutes = [
@@ -118,6 +119,7 @@ export default function Navbar() {
               <span className={`inline-block h-2 w-2 rounded-full ${isLoggedIn ? 'bg-[#2DD4BF] animate-pulse' : 'bg-red-500'}`} />
               <span>Simulate: {isLoggedIn ? "Logged In" : "Logged Out"}</span>
             </button>
+            
 
             {isLoggedIn && (
               <button

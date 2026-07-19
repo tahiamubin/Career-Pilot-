@@ -7,6 +7,8 @@ import toast from "react-hot-toast";
 import Link from "next/link";
 import { FiArrowLeft } from "react-icons/fi";
 import { authClient } from "@/lib/auth-client";
+import { getTokenServer } from "@/lib/token";
+
 
 export default function NewJobPage() {
   const { data: session } = authClient.useSession();
@@ -19,11 +21,13 @@ export default function NewJobPage() {
       userId: session?.user?.id,
       postedBy: session?.user?.id,
     };
+    const { token}  = await getTokenServer();
 
     const response = await fetch(`${process.env.NEXT_PUBLIC_BASEURL}/jobs`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        authorization: `Bearer ${token}`,
       },
       body: JSON.stringify(payload),
     });
@@ -37,8 +41,8 @@ export default function NewJobPage() {
       style: {
         background: "#18181E",
         color: "#fff",
-        border: "1px solid #2D2D35"
-      }
+        border: "1px solid #2D2D35",
+      },
     });
 
     // Invalidate the jobs query to trigger a reload

@@ -18,6 +18,7 @@ import { FiMail, FiLock, FiArrowRight, FiCpu } from "react-icons/fi";
 
 import { authClient } from "@/lib/auth-client";
 import { useRouter } from "next/navigation";
+import toast from "react-hot-toast";
 
 
 export default function SignInPage() {

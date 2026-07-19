@@ -18,6 +18,7 @@ import Link from "next/link";
 import toast from "react-hot-toast";
 import { motion, AnimatePresence } from "framer-motion";
 import JobForm from "@/components/JobForm";
+import { getTokenServer } from "@/lib/token";
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASEURL;
 
@@ -42,7 +43,11 @@ export default function ManageJobsPage() {
     }
   }, [session, isPending, router]);
 
-  const { data: allJobs = [], isLoading, error } = useQuery({
+  const {
+    data: allJobs = [],
+    isLoading,
+    error,
+  } = useQuery({
     queryKey: ["jobs"],
     queryFn: async () => {
       const res = await fetch(`${BASE_URL}/jobs`);
@@ -53,16 +58,23 @@ export default function ManageJobsPage() {
   });
 
   const userJobs = allJobs.filter(
-    (job) => job.userId === session?.user?.id || job.postedBy === session?.user?.id
+    (job) =>
+      job.userId === session?.user?.id || job.postedBy === session?.user?.id,
   );
 
-  const refreshJobs = () => queryClient.invalidateQueries({ queryKey: ["jobs"] });
+  const refreshJobs = () =>
+    queryClient.invalidateQueries({ queryKey: ["jobs"] });
 
   const handleDelete = async (jobId) => {
-    if (!window.confirm("Are you sure you want to delete this job listing?")) return;
+    const { token } = await getTokenServer();
+    if (!window.confirm("Are you sure you want to delete this job listing?"))
+      return;
 
     try {
-      const res = await fetch(`${BASE_URL}/jobs/${jobId}`, { method: "DELETE" });
+      const res = await fetch(`${BASE_URL}/jobs/${jobId}`, {
+        method: "DELETE",
+        authorization: `Bearer ${token}`,
+      });
       if (!res.ok) throw new Error("Failed to delete job listing");
 
       toast.success("Job listing deleted successfully", TOAST_STYLE);
@@ -74,12 +86,16 @@ export default function ManageJobsPage() {
   };
 
   const handleEditSubmit = async (data) => {
+    const { token } = await getTokenServer();
     if (!editingJob) return;
     const jobId = editingJob.id || editingJob._id;
 
     const res = await fetch(`${BASE_URL}/jobs/${jobId}`, {
       method: "PATCH",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        authorization: `Bearer ${token}`,
+      },
       body: JSON.stringify(data),
     });
 
@@ -98,7 +114,9 @@ export default function ManageJobsPage() {
       <div className="min-h-screen bg-[#0A0A0F] text-white pt-28 flex items-center justify-center">
         <div className="space-y-4 text-center">
           <div className="h-10 w-10 border-4 border-t-[#2DD4BF] border-[#2D2D35] rounded-full animate-spin mx-auto" />
-          <p className="text-gray-400 text-sm font-semibold">Loading management console...</p>
+          <p className="text-gray-400 text-sm font-semibold">
+            Loading management console...
+          </p>
         </div>
       </div>
     );
@@ -147,7 +165,8 @@ export default function ManageJobsPage() {
             <FiBriefcase className="h-12 w-12 text-gray-500 mx-auto mb-4" />
             <h3 className="text-lg font-bold text-white">No jobs posted yet</h3>
             <p className="text-gray-400 mt-2 max-w-sm mx-auto mb-6">
-              You haven't posted any jobs under this account. Post a new opening to start matching with candidate profiles.
+              You haven't posted any jobs under this account. Post a new opening
+              to start matching with candidate profiles.
             </p>
           </div>
         ) : (
@@ -231,11 +250,16 @@ function JobRow({ job, onEdit, onDelete }) {
           )}
           <div className="min-w-0">
             <p className="font-bold text-white truncate max-w-[220px]">
-              <Link href={`/jobs/${jobId}`} className="hover:text-[#2DD4BF] transition-colors">
+              <Link
+                href={`/jobs/${jobId}`}
+                className="hover:text-[#2DD4BF] transition-colors"
+              >
                 {job.title}
               </Link>
             </p>
-            <p className="text-xs text-gray-400 truncate max-w-[220px]">{job.company}</p>
+            <p className="text-xs text-gray-400 truncate max-w-[220px]">
+              {job.company}
+            </p>
           </div>
         </div>
       </td>
