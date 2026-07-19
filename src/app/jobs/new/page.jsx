@@ -7,8 +7,6 @@ import toast from "react-hot-toast";
 import Link from "next/link";
 import { FiArrowLeft } from "react-icons/fi";
 import { authClient } from "@/lib/auth-client";
-import { getTokenServer } from "@/lib/token";
-
 
 export default function NewJobPage() {
   const { data: session } = authClient.useSession();
@@ -16,12 +14,18 @@ export default function NewJobPage() {
   const router = useRouter();
 
   const handleSubmit = async (data) => {
+    const { data: tokenData } = await authClient.token();
+    const token = tokenData?.token;
+    console.log("=== DEBUG FRONTEND TOKEN ===");
+    console.log("Extracted token string:", token);
+    console.log("Authorization header value:", `Bearer ${token}`);
+    console.log("=============================");
+
     const payload = {
       ...data,
       userId: session?.user?.id,
       postedBy: session?.user?.id,
     };
-    const { token}  = await getTokenServer();
 
     const response = await fetch(`${process.env.NEXT_PUBLIC_BASEURL}/jobs`, {
       method: "POST",

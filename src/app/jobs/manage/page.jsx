@@ -73,7 +73,9 @@ export default function ManageJobsPage() {
     try {
       const res = await fetch(`${BASE_URL}/jobs/${jobId}`, {
         method: "DELETE",
-        authorization: `Bearer ${token}`,
+        headers: {
+          authorization: `Bearer ${token}`,
+        },
       });
       if (!res.ok) throw new Error("Failed to delete job listing");
 

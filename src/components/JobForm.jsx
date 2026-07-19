@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { FiX, FiBriefcase, FiMapPin, FiDollarSign, FiClock, FiGrid, FiImage, FiTag, FiFileText } from "react-icons/fi";
+import { FiX, FiBriefcase, FiMapPin, FiDollarSign, FiClock, FiGrid,  FiTag, FiFileText } from "react-icons/fi";
 
 export default function JobForm({ initialData = null, onSubmit, onClose, title = "Post a New Job" }) {
   const [formData, setFormData] = useState({
