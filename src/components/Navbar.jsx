@@ -38,8 +38,12 @@ export default function Navbar() {
     { name: "Home", path: "/" },
     { name: "Browse Jobs", path: "/jobs" },
     { name: "About", path: "/about" },
+     { name: "Policy", path: "/policy" },
+     { name: "Help", path: "/help" },
     { name: "Login", path: "/signin" },
+    
     { name: "Signup", path: "/signup" },
+   
   ];
 
   const loggedInRoutes = [
