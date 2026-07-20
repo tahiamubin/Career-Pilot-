@@ -19,6 +19,7 @@ import toast from "react-hot-toast";
 import { motion, AnimatePresence } from "framer-motion";
 import JobForm from "@/components/JobForm";
 import { getTokenServer } from "@/lib/token";
+import { BsEye, BsEyeFill } from "react-icons/bs";
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASEURL;
 
@@ -304,6 +305,16 @@ function JobRow({ job, onEdit, onDelete }) {
           >
             <FiEdit2 className="h-4 w-4" />
           </button>
+          <Link href={`/jobs/${jobId}`}>
+            <button
+    
+              className="p-2 rounded-lg border border-[#2D2D35] text-gray-400 hover:text-white hover:bg-[#2D2D35]/50 transition-all cursor-pointer"
+              title="Edit Job"
+            >
+              <BsEyeFill className="h-4 w-4" />
+            </button>
+          </Link>
+        
           <button
             onClick={onDelete}
             className="p-2 rounded-lg border border-rose-500/20 text-rose-400 hover:text-white hover:bg-rose-500/30 transition-all cursor-pointer"
